@@ -70,13 +70,13 @@
             <el-button
               type="primary"
               icon="el-icon-edit"
-              @click="edit(scope)"
+              @click.prevent="edit(scope)"
               circle
             ></el-button>
             <el-button
               type="danger"
               icon="el-icon-delete"
-              @click="deleteRecord(scope)"
+              @click.prevent="deleteRecord(scope)"
               circle
             ></el-button>
           </div>
@@ -84,7 +84,7 @@
             <el-button
               icon="el-icon-close"
               type="info"
-              @click="cancel(scope)"
+              @click.prevent="cancel(scope)"
               circle
             ></el-button>
             <el-button
@@ -121,15 +121,19 @@ export default {
   },
   methods: {
     edit(scope) {
-      this.beforeEditData = this.makeCachedObject(scope.row);
+      this.beforeEditData = JSON.parse(
+        JSON.stringify(this.residents[scope.row.index])
+      );
       this.editRowIndex = scope.row.index;
     },
     cancel(scope) {
-      this.fulfillResidentObject(scope, this.beforeEditData);
+      this.residents[scope.row.index] = this.beforeEditData;
       this.editRowIndex = -1;
     },
     save(scope) {
       let self = this;
+      console.log(scope.row);
+
       this.axios
         .patch(`/api/residents/${scope.row.id}`, {
           fio: scope.row.fio,
@@ -137,47 +141,30 @@ export default {
           start_date: scope.row.start_date,
         })
         .then((response) => {
-          self.residents[response.data.id - 1] = response.data;
-          self.residents[response.data.id - 1].index = scope.row.index;
-          self.residents[response.data.id - 1].locale_date = new Date(
-            self.residents[response.data.id - 1].start_date
+          self.residents[scope.row.index] = response.data;
+          self.residents[scope.row.index].index = scope.row.index;
+          self.residents[scope.row.index].locale_date = new Date(
+            self.residents[scope.row.index].start_date
           ).toLocaleString("ru", {
             year: "numeric",
             month: "long",
             day: "numeric",
           });
 
-          self.cancel(scope);
+          this.editRowIndex = -1;
         })
         .catch((error) => this.setResidentErrors(error.response.data.errors));
     },
     deleteRecord(scope) {
       this.axios
         .delete(`/api/residents/${scope.row.id}`)
-        .then((response) => console.log(response))
+        .then(() => {
+          this.residents.splice(scope.row.index, 1);
+        })
         .catch((error) => console.log(error));
     },
     getCellIndex: function ({ row, rowIndex }) {
       row.index = rowIndex;
-    },
-    // TODO: refactor this
-    makeCachedObject(scope) {
-      return {
-        id: scope.id,
-        index: scope.index,
-        fio: scope.fio,
-        area: scope.area,
-        start_date: scope.start_date,
-        locale_date: scope.locale_date,
-      };
-    },
-    fulfillResidentObject(scope, cachedObj) {
-      scope.row.id = cachedObj.id;
-      scope.row.index = cachedObj.index;
-      scope.row.fio = cachedObj.fio;
-      scope.row.area = cachedObj.area;
-      scope.row.start_date = cachedObj.start_date;
-      scope.row.locale_date = cachedObj.locale_date;
     },
     setResidentErrors(errors) {
       console.log(errors);
