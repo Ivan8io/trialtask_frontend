@@ -97,6 +97,15 @@
         </template>
       </el-table-column>
     </el-table>
+    <el-pagination
+      background
+      layout="prev, pager, next"
+      :page-size="page_size"
+      :current-page="page"
+      :total="18"
+      @current-change="handleCurrentChange"
+    >
+    </el-pagination>
   </div>
 </template>
 <script>
@@ -108,6 +117,8 @@ export default {
   },
   data() {
     return {
+      page: null,
+      page_size: 5,
       residents: [],
       editRowIndex: -1,
       beforeEditData: {},
@@ -143,6 +154,7 @@ export default {
         .then((response) => {
           self.residents[scope.row.index] = response.data;
           self.residents[scope.row.index].index = scope.row.index;
+
           self.residents[scope.row.index].locale_date = new Date(
             self.residents[scope.row.index].start_date
           ).toLocaleString("ru", {
@@ -183,10 +195,17 @@ export default {
     clearError(key) {
       this.errors[key] = null;
     },
+    handleCurrentChange(page) {
+      this.$router.replace({ query: { page } });
+    },
   },
   created() {
-    this.axios.get("/api/residents").then((response) => {
-      this.residents = response.data;
+    this.page = parseInt(this.$route.query.page) || 1;
+
+    this.axios.get(`/api/residents?page=${this.page}`).then((response) => {
+      console.log(response.data);
+
+      this.residents = response.data.data;
 
       this.residents.forEach(
         (item) =>
@@ -201,6 +220,10 @@ export default {
 };
 </script>
 <style>
+.el-pagination {
+  margin-top: 30px;
+}
+
 .createResident {
   margin-bottom: 3%;
 }

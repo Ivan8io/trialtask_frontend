@@ -18,7 +18,7 @@
         </el-menu>
       </el-header>
       <el-main id="main">
-        <router-view />
+        <router-view :key="$route.fullPath" />
       </el-main>
     </el-container>
   </div>
