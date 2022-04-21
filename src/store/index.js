@@ -5,13 +5,15 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
-    loggedIn: localStorage.getItem("isLoggedIn"),
+    loggedIn: !!localStorage.getItem("isLoggedIn"),
   },
   mutations: {
     SET_AUTH(state) {
+      localStorage.setItem("isLoggedIn", "true");
       state.loggedIn = true;
     },
     UNSET_AUTH(state) {
+      localStorage.removeItem("isLoggedIn");
       state.loggedIn = false;
     },
   },

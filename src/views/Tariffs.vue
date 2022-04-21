@@ -16,11 +16,11 @@
           :picker-options="pickerOptions"
           @change="
             checkTariffExists();
-            clearError('date');
+            clearError('begin_date');
           "
         ></el-date-picker>
       </el-form-item>
-      <p class="errorMessage">{{ errors.date }}</p>
+      <p class="errorMessage">{{ errors.begin_date }}</p>
       <el-form-item label="Цена за кубометр воды в рублях:">
         <el-input
           placeholder="0.00"
@@ -43,16 +43,17 @@
 
 <script>
 import { dateMixin } from "../mixins/dateMixin.js";
+import { errorMixin } from "../mixins/errorMixin";
 
 export default {
   name: "Tariffs",
-  mixins: [dateMixin],
+  mixins: [dateMixin, errorMixin],
   data() {
     return {
       tariffExists: false,
       monthPrice: null,
       errors: {
-        date: null,
+        begin_date: null,
         price: null,
       },
       tariff: {
@@ -76,15 +77,14 @@ export default {
       this.axios
         .get(`/api/tariffs?begin_date=${this.tariff.begin_date}`)
         .then((response) => {
-          console.log(response.data);
-          if (response.data) {
+          if (response.data.data) {
             this.displayDate = this.$refs.elDatePicker.displayValue.replace(
               /-/,
               " "
             );
 
             this.tariffExists = true;
-            this.tariff = response.data;
+            this.tariff = response.data.data;
             this.errors.price = null;
             this.monthPrice = this.tariff.price;
           }
@@ -108,7 +108,7 @@ export default {
             this.tariffExists = true;
           }
 
-          this.tariff = response.data;
+          this.tariff = response.data.data;
           this.monthPrice = this.tariff.price;
 
           this.displayDate = this.$refs.elDatePicker.displayValue.replace(
@@ -122,20 +122,9 @@ export default {
             type: "success",
           });
         })
-        .catch((error) => this.setTariffErrors(error.response.data.errors));
-    },
-    clearError(key) {
-      this.errors[key] = null;
-    },
-    setTariffErrors(errors) {
-      console.log(errors);
-      if (errors.price) {
-        this.errors.price = errors.price[0];
-      }
-
-      if (errors.begin_date) {
-        this.errors.date = errors.begin_date[0];
-      }
+        .catch((error) =>
+          this.setErrors(error.response.data.errors, "price", "begin_date")
+        );
     },
   },
 };

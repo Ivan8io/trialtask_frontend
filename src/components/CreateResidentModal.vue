@@ -61,8 +61,11 @@
 </template>
 
 <script>
+import { errorMixin } from "../mixins/errorMixin";
+
 export default {
   name: "CreateResidentModal",
+  mixins: [errorMixin],
   data() {
     return {
       resident: {
@@ -90,24 +93,14 @@ export default {
 
           this.$emit("close");
         })
-        .catch((error) => this.setResidentErrors(error.response.data.errors));
-    },
-    setResidentErrors(errors) {
-      console.log(errors);
-      if (errors.fio) {
-        this.errors.fio = errors.fio[0];
-      }
-
-      if (errors.area) {
-        this.errors.area = errors.area[0];
-      }
-
-      if (errors.start_date) {
-        this.errors.start_date = errors.start_date[0];
-      }
-    },
-    clearError(key) {
-      this.errors[key] = null;
+        .catch((error) =>
+          this.setErrors(
+            error.response.data.errors,
+            "fio",
+            "area",
+            "start_date"
+          )
+        );
     },
   },
 };

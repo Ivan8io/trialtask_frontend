@@ -7,12 +7,15 @@
         placeholder="Введите число"
         clearable
         type="number"
-        @input="error = null"
+        @input="clearError('amount_volume')"
       ></el-input>
     </el-form-item>
-    <p class="errorMessage mb-20">{{ error }}</p>
+    <p class="errorMessage mb-20">{{ errors.amount_volume }}</p>
     <el-form-item>
-      <el-button type="primary" :disabled="!!error" @click.prevent="send"
+      <el-button
+        type="primary"
+        :disabled="!!errors.amount_volume"
+        @click.prevent="send"
         >Отправить</el-button
       >
     </el-form-item>
@@ -20,12 +23,17 @@
 </template>
 
 <script>
+import { errorMixin } from "../mixins/errorMixin";
+
 export default {
   name: "PumpMeters",
+  mixins: [errorMixin],
   data() {
     return {
       amountVolume: null,
-      error: null,
+      errors: {
+        amount_volume: null,
+      },
       isRecordExists: false,
     };
   },
@@ -44,11 +52,9 @@ export default {
             type: "success",
           });
         })
-        .catch((error) => {
-          if (error.response.data.errors.amount_volume) {
-            this.error = error.response.data.errors.amount_volume[0];
-          }
-        });
+        .catch((error) =>
+          this.setErrors(error.response.data.errors, "amount_volume")
+        );
     },
   },
   mounted() {

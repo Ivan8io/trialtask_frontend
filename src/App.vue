@@ -18,7 +18,7 @@
         </el-menu>
       </el-header>
       <el-main id="main">
-        <router-view :key="$route.fullPath" />
+        <router-view />
       </el-main>
     </el-container>
   </div>
@@ -36,7 +36,6 @@ export default {
   },
   methods: {
     logout() {
-      localStorage.removeItem("isLoggedIn");
       this.axios.post("/logout");
       this.$store.dispatch("unsetAuth");
       this.$router.push({ name: "Login" });

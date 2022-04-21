@@ -17,9 +17,10 @@
       <el-table-column label="ФИО" align="center">
         <template slot-scope="scope">
           <el-input
+            clearable
             v-show="scope.row.index === editRowIndex"
-            :value="scope.row.fio"
-            @input="scope.row.fio = $event"
+            v-model="scope.row.fio"
+            @input="clearError('fio')"
             placeholder="Пожалуйста, введите содержание"
           ></el-input>
           <p v-show="scope.row.index === editRowIndex" class="errorMessage">
@@ -33,10 +34,11 @@
       <el-table-column label="Площадь участка" align="center">
         <template slot-scope="scope">
           <el-input
-            :value="scope.row.area"
-            @input="scope.row.area = $event"
-            placeholder="Пожалуйста, введите содержание"
+            clearable
             v-show="scope.row.index === editRowIndex"
+            v-model="scope.row.area"
+            @input="clearError('area')"
+            placeholder="Пожалуйста, введите содержание"
           ></el-input>
           <p v-show="scope.row.index === editRowIndex" class="errorMessage">
             {{ errors.area }}
@@ -52,9 +54,9 @@
             class="datePicker_residents"
             type="date"
             value-format="yyyy-MM-dd"
-            :value="scope.row.start_date"
-            @input="scope.row.start_date = $event"
+            v-model="scope.row.start_date"
             v-show="scope.row.index === editRowIndex"
+            @change="clearError('start_date')"
           ></el-date-picker>
           <p v-show="scope.row.index === editRowIndex" class="errorMessage">
             {{ errors.start_date }}
@@ -70,13 +72,13 @@
             <el-button
               type="primary"
               icon="el-icon-edit"
-              @click.prevent="edit(scope)"
+              @click.prevent="edit(scope.row.index)"
               circle
             ></el-button>
             <el-button
               type="danger"
               icon="el-icon-delete"
-              @click.prevent="deleteRecord(scope)"
+              @click.prevent="deleteRecord(scope.row)"
               circle
             ></el-button>
           </div>
@@ -84,14 +86,14 @@
             <el-button
               icon="el-icon-close"
               type="info"
-              @click.prevent="cancel(scope)"
+              @click.prevent="cancel(scope.row.index)"
               circle
             ></el-button>
             <el-button
               icon="el-icon-check"
               type="success"
               circle
-              @click.prevent="save(scope)"
+              @click.prevent="save(scope.row)"
             ></el-button>
           </div>
         </template>
@@ -102,7 +104,7 @@
       layout="prev, pager, next"
       :page-size="page_size"
       :current-page="page"
-      :total="18"
+      :total="totalItems"
       @current-change="handleCurrentChange"
     >
     </el-pagination>
@@ -110,15 +112,16 @@
 </template>
 <script>
 import CreateResidentsModal from "../components/CreateResidentModal";
+import { errorMixin } from "../mixins/errorMixin.js";
+import { paginationMixin } from "../mixins/paginationMixin.js";
 
 export default {
   components: {
     CreateResidentsModal,
   },
+  mixins: [errorMixin, paginationMixin],
   data() {
     return {
-      page: null,
-      page_size: 5,
       residents: [],
       editRowIndex: -1,
       beforeEditData: {},
@@ -131,91 +134,67 @@ export default {
     };
   },
   methods: {
-    edit(scope) {
-      this.beforeEditData = JSON.parse(
-        JSON.stringify(this.residents[scope.row.index])
-      );
-      this.editRowIndex = scope.row.index;
+    edit(index) {
+      this.beforeEditData = JSON.parse(JSON.stringify(this.residents[index]));
+      this.editRowIndex = index;
     },
-    cancel(scope) {
-      this.residents[scope.row.index] = this.beforeEditData;
+    cancel(index) {
+      this.residents[index] = this.beforeEditData;
       this.editRowIndex = -1;
     },
-    save(scope) {
+    save(row) {
       let self = this;
-      console.log(scope.row);
 
       this.axios
-        .patch(`/api/residents/${scope.row.id}`, {
-          fio: scope.row.fio,
-          area: scope.row.area,
-          start_date: scope.row.start_date,
+        .patch(`/api/residents/${row.id}`, {
+          fio: row.fio,
+          area: row.area,
+          start_date: row.start_date,
         })
         .then((response) => {
-          self.residents[scope.row.index] = response.data;
-          self.residents[scope.row.index].index = scope.row.index;
+          let index = row.index;
 
-          self.residents[scope.row.index].locale_date = new Date(
-            self.residents[scope.row.index].start_date
-          ).toLocaleString("ru", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          });
+          self.residents[index] = response.data;
 
           this.editRowIndex = -1;
         })
-        .catch((error) => this.setResidentErrors(error.response.data.errors));
+        .catch((error) =>
+          this.setErrors(
+            error.response.data.errors,
+            "fio",
+            "area",
+            "start_date"
+          )
+        );
     },
-    deleteRecord(scope) {
+    deleteRecord({ id, index }) {
       this.axios
-        .delete(`/api/residents/${scope.row.id}`)
+        .delete(`/api/residents/${id}`)
         .then(() => {
-          this.residents.splice(scope.row.index, 1);
+          this.residents.splice(index, 1);
         })
         .catch((error) => console.log(error));
     },
     getCellIndex: function ({ row, rowIndex }) {
       row.index = rowIndex;
     },
-    setResidentErrors(errors) {
-      console.log(errors);
-      if (errors.fio) {
-        this.errors.fio = errors.fio[0];
-      }
-
-      if (errors.area) {
-        this.errors.area = errors.area[0];
-      }
-
-      if (errors.start_date) {
-        this.errors.start_date = errors.start_date[0];
-      }
-    },
-    clearError(key) {
-      this.errors[key] = null;
-    },
     handleCurrentChange(page) {
-      this.$router.replace({ query: { page } });
+      this.changePage(page, this.setUpResidents);
+    },
+    setUpResidents() {
+      this.page = +this.$route.query.page || 1;
+
+      this.axios
+        .get(`/api/residents?page=${this.page}`)
+        .then(({ data: { meta, data } }) => {
+          this.setUpMetaData(meta.per_page, meta.total);
+
+          this.residents = data;
+        });
     },
   },
   created() {
-    this.page = parseInt(this.$route.query.page) || 1;
-
-    this.axios.get(`/api/residents?page=${this.page}`).then((response) => {
-      console.log(response.data);
-
-      this.residents = response.data.data;
-
-      this.residents.forEach(
-        (item) =>
-          (item.locale_date = new Date(item.start_date).toLocaleString("ru", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }))
-      );
-    });
+    this.setUpResidents();
   },
 };
 </script>
