@@ -8,7 +8,6 @@
             >Показания счётчика</router-link
           >
           | <router-link :to="{ name: 'Residents' }">Дачники</router-link> |
-          <router-link :to="{ name: 'Bills' }">Счета</router-link> |
           <template v-if="!loggedIn">
             <router-link :to="{ name: 'Login' }"> Войти </router-link>
           </template>
